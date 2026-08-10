@@ -1,0 +1,27 @@
+zebra=yes
+bgpd=yes
+ospfd=yes
+isisd=yes
+
+staticd=no
+babeld=no
+bfdd=no
+eigrpd=no
+fabricd=no
+ldpd=no
+nhrpd=no
+ospf6d=no
+pathd=no
+pbrd=no
+pimd=no
+pim6d=no
+ripd=no
+ripngd=no
+sharpd=no
+vrrpd=no
+
+vtysh_enable=yes
+zebra_options="  -A 127.0.0.1 -s 90000000"
+bgpd_options="   -A 127.0.0.1"
+ospfd_options="  -A 127.0.0.1"
+isisd_options="  -A 127.0.0.1"
