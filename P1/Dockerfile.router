@@ -1,0 +1,11 @@
+FROM frrouting/frr:latest
+
+RUN apk update && apk add --no-cache \
+    busybox-extras \
+    bridge-utils \
+    tcpdump \
+    iputils
+
+COPY daemons /etc/frr/daemons
+
+CMD ["/usr/lib/frr/docker-start"]
