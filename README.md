@@ -95,8 +95,3 @@ badass/
 | BGP EVPN (RFC 7432) | Control plane for VXLAN — MAC/IP route distribution |
 | OSPF | Interior gateway protocol for underlay reachability |
 | IS-IS | Alternative IGP routing engine |
-
-## Authors
-
-- **dmiasnik** — Part 1, Part 2
-- **sshevche** — Part 3
