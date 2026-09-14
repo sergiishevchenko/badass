@@ -1,27 +1,52 @@
+# zebra — core routing manager (interfaces + kernel routing table)
 zebra=yes
+# bgpd — BGP routing daemon (Border Gateway Protocol)
 bgpd=yes
+# ospfd — OSPFv2 routing daemon (IPv4 Open Shortest Path First)
 ospfd=yes
+# isisd — IS-IS routing daemon (Intermediate System to Intermediate System)
 isisd=yes
 
+# staticd — static route management daemon
 staticd=no
+# babeld — Babel distance-vector routing protocol daemon
 babeld=no
+# bfdd — BFD daemon (Bidirectional Forwarding Detection)
 bfdd=no
+# eigrpd — EIGRP routing daemon (Enhanced Interior Gateway Routing Protocol)
 eigrpd=no
+# fabricd — OpenFabric routing daemon (data center fabric)
 fabricd=no
+# ldpd — LDP daemon (Label Distribution Protocol, MPLS)
 ldpd=no
+# nhrpd — NHRP daemon (Next Hop Resolution Protocol)
 nhrpd=no
+# ospf6d — OSPFv3 routing daemon (IPv6 Open Shortest Path First)
 ospf6d=no
+# pathd — pathd daemon (segment routing / path computation)
 pathd=no
+# pbrd — PBR daemon (Policy-Based Routing)
 pbrd=no
+# pimd — PIM daemon (Protocol Independent Multicast, IPv4)
 pimd=no
+# pim6d — PIM daemon for IPv6 (Protocol Independent Multicast)
 pim6d=no
+# ripd — RIP daemon (Routing Information Protocol, IPv4)
 ripd=no
+# ripngd — RIPng daemon (Routing Information Protocol next generation, IPv6)
 ripngd=no
+# sharpd — SHARP testing/development daemon (not for production routing)
 sharpd=no
+# vrrpd — VRRP daemon (Virtual Router Redundancy Protocol)
 vrrpd=no
 
+# vtysh_enable — allow integrated vtysh CLI for all FRR daemons
 vtysh_enable=yes
+# zebra_options — -A: bind to localhost; -s: netlink socket buffer size (bytes)
 zebra_options="  -A 127.0.0.1 -s 90000000"
+# bgpd_options — -A: bind BGP daemon control socket to localhost only
 bgpd_options="   -A 127.0.0.1"
+# ospfd_options — -A: bind OSPF daemon control socket to localhost only
 ospfd_options="  -A 127.0.0.1"
+# isisd_options — -A: bind IS-IS daemon control socket to localhost only
 isisd_options="  -A 127.0.0.1"
