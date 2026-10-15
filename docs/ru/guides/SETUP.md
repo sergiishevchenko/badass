@@ -839,23 +839,89 @@ tcpdump -i eth0 -n port 4789
 
 Мелькают UDP-пакеты — туннель жив.
 
-**Save.** Экспорт — раздел G.
+**File → Save.** Экспорт static — раздел G, файл `P2.gns3project`.
 
-### Multicast-вариант (кратко)
+## E8. Multicast — отдельный проект
 
-Либо снести VXLAN/bridge на тех же узлах и применить `P2/_dmiasnik-1_g` / `_dmiasnik-2_g`,  
-либо сделать **отдельный** проект `P2-multicast` теми же кабелями и именами узлов `dmiasnik-1-g`, `dmiasnik-2-g`.
+Топология та же, что в E1–E5. Меняются только конфиги роутеров: вместо `remote 10.1.1.2` стоит `group 239.1.1.1`. Хосты те же файлы, что в static.
 
-Снос static перед multicast (на обоих роутерах):
+Делай это **новым** проектом GNS3, не переписывай холст P2. Иначе static-схема пропадёт.
+
+### Уже созданные P1 и P2
+
+**File → New blank project** создаёт новую папку проекта. Файлы P1 и P2 на диске он не открывает и не меняет. Шаблоны `dmiasnik-host` и `dmiasnik-router` общие: их повторное использование старые проекты не портит.
+
+Перед новым проектом:
+
+1. В проекте P2 нажми **File → Save**.
+2. **■ Stop all**, чтобы контейнеры static погасли.
+3. Можно закрыть вкладку P2. Открыть её снова потом: **File → Open project**.
+
+Пока оба проекта запущены одновременно, в `docker ps` будут две четвёрки контейнеров. На сохранённые файлы это не влияет, но путает, какой ID какой схемы. Поэтому static сначала останови.
+
+### Новый проект
+
+1. **File → New blank project**
+2. Name: `P2-multicast`
+3. OK
+
+На холсте пусто. P1 и P2 в списке недавних проектов остаются.
+
+### Устройства и кабели
+
+Повтори E3–E5 один в один: два хоста, два роутера, три кабеля.
+
+| Кто на схеме | Имя узла в GNS3 |
+|--------------|------------------|
+| левый host | `dmiasnik-1-host` |
+| левый router | `dmiasnik-1-g` |
+| правый router | `dmiasnik-2-g` |
+| правый host | `dmiasnik-2-host` |
+
+Кабели те же:
+
+1. `dmiasnik-1-host` Ethernet0 → `dmiasnik-1-g` **Ethernet1**
+2. `dmiasnik-1-g` Ethernet0 → `dmiasnik-2-g` Ethernet0
+3. `dmiasnik-2-host` Ethernet0 → `dmiasnik-2-g` **Ethernet1**
+
+Хост снова во второй порт роутера, не в Ethernet0.
+
+### Start и конфиги
+
+1. **▶ Start all**.
+2. Подожди, пока все 4 живые.
+3. `docker exec -it <ID> sh` и команды из файлов (**без** `#!/bin/sh`):
+
+| Узел на холсте | Файл |
+|----------------|------|
+| `dmiasnik-1-g` | `P2/_dmiasnik-1_g` |
+| `dmiasnik-2-g` | `P2/_dmiasnik-2_g` |
+| `dmiasnik-1-host` | `P2/_dmiasnik-1_host` |
+| `dmiasnik-2-host` | `P2/_dmiasnik-2_host` |
+
+У роутеров в вставленном тексте должна быть строка `group 239.1.1.1`, а не `remote 10.1.1.2`.
+
+### Проверки
+
+На обоих роутерах:
 
 ```bash
-ip link set eth1 down || true
-ip link set br0 down || true
-brctl delif br0 eth1 || true
-brctl delif br0 vxlan10 || true
-ip link del vxlan10 || true
-brctl delbr br0 || true
+ip -d link show vxlan10
+ip maddr show dev eth0
+brctl show
 ```
+
+Ожидание: у `vxlan10` есть `group 239.1.1.1` и `id 10`. В `ip maddr` на `eth0` видна группа `239.1.1.1`. В `br0` висят `vxlan10` и `eth1`.
+
+На `dmiasnik-1-host`:
+
+```bash
+ping -c 5 30.1.1.2
+```
+
+Должен пинговаться второй хост, как в static.
+
+**File → Save.** Если экспортируешь portable project, имя файла `P2-multicast.gns3project`. Не называй его `P2.gns3project`: так затрёшь архив static.
 
 ---
 
@@ -1056,7 +1122,8 @@ docker exec -it <ID_КОНТЕЙНЕРА> sh /tmp/setup.sh
 - [ ] В GNS3 есть два Docker-шаблона; у router **4** adapters
 - [ ] Умею: New project → drag → rename → Add a link → Start → `docker exec -it <ID> sh`
 - [ ] P1: ping host ↔ router, видны zebra/bgpd/ospfd/isisd
-- [ ] P2: кабели eth0 underlay / eth1 к хостам; ping 30.1.1.1 ↔ 30.1.1.2; udp/4789 в tcpdump
+- [ ] P2 static: кабели eth0 underlay / eth1 к хостам; ping 30.1.1.1 ↔ 30.1.1.2; udp/4789 в tcpdump
+- [ ] P2 multicast: отдельный проект, `group 239.1.1.1`, тот же ping
 - [ ] P3: OSPF Full, BGP Established, Type 3, Type 2, ping 20.1.1.x
 - [ ] Есть `P1.gns3project`, `P2.gns3project`, `P3.gns3project` — ZIP **с images**
 - [ ] Рядом лежат текстовые конфиги устройств
