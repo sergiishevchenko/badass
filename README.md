@@ -91,7 +91,11 @@ badass/
 | GNS3 | Network simulation platform |
 | Docker | Containerized network nodes |
 | FRRouting | Routing daemon suite (fork of Quagga) |
-| VXLAN (RFC 7348) | L2 overlay tunneling over L3 underlay |
-| BGP EVPN (RFC 7432) | Control plane for VXLAN — MAC/IP route distribution |
-| OSPF | Interior gateway protocol for underlay reachability |
-| IS-IS | Alternative IGP routing engine |
+| VXLAN ([RFC 7348](https://datatracker.ietf.org/doc/html/rfc7348)) | L2 overlay tunneling over L3 underlay |
+| BGP ([RFC 4271](https://datatracker.ietf.org/doc/html/rfc4271)) | Base routing protocol |
+| MP-BGP ([RFC 4760](https://datatracker.ietf.org/doc/html/rfc4760)) | Multiprotocol extensions (EVPN address family) |
+| BGP EVPN ([RFC 7432](https://datatracker.ietf.org/doc/html/rfc7432)) | Control plane for VXLAN — MAC/IP route distribution |
+| OSPF ([RFC 2328](https://datatracker.ietf.org/doc/html/rfc2328)) | Interior gateway protocol for underlay reachability |
+| IS-IS ([RFC 1195](https://datatracker.ietf.org/doc/html/rfc1195)) | Alternative IGP routing engine |
+
+Full RFC list with links: [`docs/RFC.md`](docs/RFC.md)
