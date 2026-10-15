@@ -938,8 +938,9 @@ ping -c 5 30.1.1.2
       host1       host2        host3
 ```
 
-Все «коробки сверху» — шаблон **router**.  
-Три снизу — шаблон **host**.
+Все четыре верхние коробки — шаблон **router**. Три нижние — шаблон **host**.
+
+**RR** (Route Reflector) — это один верхний роутер по центру, на холсте `sshevche-1`. **VTEP** — три средних роутера: `sshevche-2`, `sshevche-3`, `sshevche-4`. Дальше в тексте «на RR» значит: команды вводятся в shell контейнера `sshevche-1`, не в окно Console и не на хосте.
 
 ## F2. Новый проект
 
@@ -949,7 +950,7 @@ ping -c 5 30.1.1.2
 
 1. Четыре раза перетащи `dmiasnik-router`.
 2. Три раза перетащи `dmiasnik-host`.
-3. Разложи как на картинке: RR сверху, три VTEP ниже, хосты под ними.
+3. Разложи как на картинке: `sshevche-1` (RR) сверху, три VTEP ниже, хосты под ними.
 
 ## F4. Переименовать
 
@@ -986,7 +987,16 @@ Add a link. Не торопись. После каждого кабеля све
    - `P3/_sshevche-3`
    - `P3/_sshevche-4`
 3. Подожди **15–30 секунд**.
-4. На RR проверь:
+4. Проверь на RR, то есть в shell верхнего роутера `sshevche-1`:
+
+```bash
+docker ps
+docker exec -it <ID> sh
+```
+
+В `docker ps` это контейнер с образом `dmiasnik-router`, в колонке NAMES есть `sshevche-1`. Не путай его с `sshevche-2`, `sshevche-3`, `sshevche-4`.
+
+В этом shell:
 
 ```bash
 vtysh -c "show ip ospf neighbor"
@@ -1003,14 +1013,14 @@ vtysh -c "show bgp l2vpn evpn route type multicast"
    - `P3/_sshevche-1_host`
    - `P3/_sshevche-2_host`
    - `P3/_sshevche-3_host`
-6. Проверь Type 2 и ping:
+6. Снова в shell `sshevche-1` проверь Type 2:
 
 ```bash
 vtysh -c "show bgp l2vpn evpn route type macip"
 vtysh -c "show evpn mac vni 10"
 ```
 
-С host1:
+В shell хоста `sshevche-1-host` (на схеме это host1 под `sshevche-2`):
 
 ```bash
 ping -c 5 20.1.1.2
