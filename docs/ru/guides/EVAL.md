@@ -769,3 +769,269 @@ ping -c 5 20.1.1.3
 **На экране терминала с `tcpdump`:** строки UDP, порт `4789`.
 
 Ctrl+C в терминале с `tcpdump`, затем `exit`. Во втором терминале `exit`.
+
+---
+
+## Все команды подряд
+
+`ID_...` замени на ID из `docker ps`.
+
+### 0. Образы
+
+```bash
+# Ubuntu
+docker images | grep dmiasnik
+```
+
+### 1. Part 1
+
+```bash
+# Ubuntu
+docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}'
+
+# Ubuntu
+docker exec -it ID_ХОСТА sh
+# внутри хоста
+ip addr add 10.1.1.1/24 dev eth0
+ip link set eth0 up
+ip addr show eth0
+exit
+
+# Ubuntu
+docker exec -it ID_РОУТЕРА sh
+# внутри роутера
+ip addr add 10.1.1.2/24 dev eth0
+ip link set eth0 up
+ip addr show eth0
+ping -c 3 10.1.1.1
+ps aux | grep -E "zebra|bgpd|ospfd|isisd"
+vtysh -c "show version"
+exit
+
+# Ubuntu
+docker exec -it ID_ХОСТА sh
+# внутри хоста
+ping -c 3 10.1.1.2
+exit
+```
+
+### 2. Part 2 static
+
+```bash
+# Ubuntu
+docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}'
+
+# Ubuntu
+docker exec -it ID_ЛЕВОГО_РОУТЕРА sh
+# внутри dmiasnik-1-s
+ip addr add 10.1.1.1/24 dev eth0
+ip link set eth0 up
+ip link add vxlan10 type vxlan id 10 remote 10.1.1.2 dstport 4789 dev eth0
+ip link set vxlan10 up
+brctl addbr br0
+brctl addif br0 vxlan10
+brctl addif br0 eth1
+ip link set br0 up
+ip link set eth1 up
+ip -d link show vxlan10
+brctl show
+exit
+
+# Ubuntu
+docker exec -it ID_ПРАВОГО_РОУТЕРА sh
+# внутри dmiasnik-2-s
+ip addr add 10.1.1.2/24 dev eth0
+ip link set eth0 up
+ip link add vxlan10 type vxlan id 10 remote 10.1.1.1 dstport 4789 dev eth0
+ip link set vxlan10 up
+brctl addbr br0
+brctl addif br0 vxlan10
+brctl addif br0 eth1
+ip link set br0 up
+ip link set eth1 up
+ip -d link show vxlan10
+brctl show
+exit
+
+# Ubuntu
+docker exec -it ID_ЛЕВОГО_ХОСТА sh
+# внутри dmiasnik-1-host
+ip addr add 30.1.1.1/24 dev eth0
+ip link set eth0 up
+ip addr show eth0
+exit
+
+# Ubuntu
+docker exec -it ID_ПРАВОГО_ХОСТА sh
+# внутри dmiasnik-2-host
+ip addr add 30.1.1.2/24 dev eth0
+ip link set eth0 up
+ip addr show eth0
+exit
+
+# Ubuntu
+docker exec -it ID_ЛЕВОГО_ХОСТА sh
+# внутри dmiasnik-1-host
+ping -c 5 30.1.1.2
+exit
+
+# первый терминал Ubuntu
+docker exec -it ID_ЛЕВОГО_РОУТЕРА sh
+# внутри dmiasnik-1-s, окно не закрывать
+tcpdump -i eth0 -n port 4789
+
+# второй терминал Ubuntu
+docker exec -it ID_ЛЕВОГО_ХОСТА sh
+# внутри dmiasnik-1-host
+ping -c 5 30.1.1.2
+exit
+
+# первый терминал: Ctrl+C, затем
+exit
+```
+
+### 3. Part 2 multicast
+
+```bash
+# Ubuntu
+docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}'
+
+# Ubuntu
+docker exec -it ID_ЛЕВОГО_РОУТЕРА sh
+# внутри dmiasnik-1-g
+ip addr add 10.1.1.1/24 dev eth0
+ip link set eth0 up
+ip link add vxlan10 type vxlan id 10 group 239.1.1.1 dstport 4789 dev eth0
+ip link set vxlan10 up
+brctl addbr br0
+brctl addif br0 vxlan10
+brctl addif br0 eth1
+ip link set br0 up
+ip link set eth1 up
+ip -d link show vxlan10
+ip maddr show dev eth0
+brctl show
+exit
+
+# Ubuntu
+docker exec -it ID_ПРАВОГО_РОУТЕРА sh
+# внутри dmiasnik-2-g
+ip addr add 10.1.1.2/24 dev eth0
+ip link set eth0 up
+ip link add vxlan10 type vxlan id 10 group 239.1.1.1 dstport 4789 dev eth0
+ip link set vxlan10 up
+brctl addbr br0
+brctl addif br0 vxlan10
+brctl addif br0 eth1
+ip link set br0 up
+ip link set eth1 up
+ip -d link show vxlan10
+ip maddr show dev eth0
+brctl show
+exit
+
+# Ubuntu
+docker exec -it ID_ЛЕВОГО_ХОСТА sh
+# внутри dmiasnik-1-host
+ip addr add 30.1.1.1/24 dev eth0
+ip link set eth0 up
+ip addr show eth0
+exit
+
+# Ubuntu
+docker exec -it ID_ПРАВОГО_ХОСТА sh
+# внутри dmiasnik-2-host
+ip addr add 30.1.1.2/24 dev eth0
+ip link set eth0 up
+ip addr show eth0
+exit
+
+# Ubuntu
+docker exec -it ID_ЛЕВОГО_ХОСТА sh
+# внутри dmiasnik-1-host
+ping -c 5 30.1.1.2
+exit
+```
+
+### 4. Part 3
+
+```bash
+# Ubuntu, папка badass, запущены только 4 роутера
+docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}'
+
+# Ubuntu, папка badass
+docker cp P3/_sshevche-1 ID_sshevche-1:/tmp/setup.sh
+docker exec -it ID_sshevche-1 sh /tmp/setup.sh
+docker cp P3/_sshevche-2 ID_sshevche-2:/tmp/setup.sh
+docker exec -it ID_sshevche-2 sh /tmp/setup.sh
+docker cp P3/_sshevche-3 ID_sshevche-3:/tmp/setup.sh
+docker exec -it ID_sshevche-3 sh /tmp/setup.sh
+docker cp P3/_sshevche-4 ID_sshevche-4:/tmp/setup.sh
+docker exec -it ID_sshevche-4 sh /tmp/setup.sh
+
+# Ubuntu, через 15–30 секунд
+docker exec -it ID_sshevche-1 sh
+# внутри sshevche-1
+vtysh -c "show ip ospf neighbor"
+ping -c 2 1.1.1.2
+ping -c 2 1.1.1.3
+ping -c 2 1.1.1.4
+vtysh -c "show bgp summary"
+vtysh -c "show bgp l2vpn evpn route type multicast"
+exit
+
+# Ubuntu, после Start трёх хостов в GNS3
+docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}'
+
+# Ubuntu
+docker exec -it ID_sshevche-1-host sh
+# внутри sshevche-1-host
+ip addr add 20.1.1.1/24 dev eth0
+ip link set eth0 up
+ip addr show eth0
+exit
+
+# Ubuntu
+docker exec -it ID_sshevche-2-host sh
+# внутри sshevche-2-host
+ip addr add 20.1.1.2/24 dev eth0
+ip link set eth0 up
+ip addr show eth0
+exit
+
+# Ubuntu
+docker exec -it ID_sshevche-3-host sh
+# внутри sshevche-3-host
+ip addr add 20.1.1.3/24 dev eth0
+ip link set eth0 up
+ip addr show eth0
+exit
+
+# Ubuntu
+docker exec -it ID_sshevche-1 sh
+# внутри sshevche-1
+vtysh -c "show bgp l2vpn evpn route type macip"
+vtysh -c "show evpn mac vni 10"
+exit
+
+# Ubuntu
+docker exec -it ID_sshevche-1-host sh
+# внутри sshevche-1-host
+ping -c 5 20.1.1.2
+ping -c 5 20.1.1.3
+exit
+
+# первый терминал Ubuntu
+docker exec -it ID_sshevche-2 sh
+# внутри sshevche-2, окно не закрывать
+tcpdump -i eth0 -n port 4789
+
+# второй терминал Ubuntu
+docker exec -it ID_sshevche-1-host sh
+# внутри sshevche-1-host
+ping -c 5 20.1.1.3
+exit
+
+# первый терминал: Ctrl+C, затем
+exit
+```
