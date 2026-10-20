@@ -21,6 +21,24 @@ Two custom Docker images used throughout the project:
 
 Both images are imported into GNS3 and connected in a simple topology to verify basic connectivity.
 
+```
++---------------------+                     +---------------------+
+|  _dmiasnik-1_host   |                     |     _dmiasnik-2     |
+| eth0 10.1.1.1/24    +---- 10.1.1.0/24 ----+ eth0 10.1.1.2/24    |
+| Alpine + busybox    |                     | FRRouting:          |
+|                     |                     |  zebra, bgpd,       |
+|                     |                     |  ospfd, isisd       |
++---------------------+                     +---------------------+
+```
+
+| Element | Where | Purpose |
+|---|---|---|
+| `eth0` | host and router | one shared `/24` network, both ends of the link can reach each other |
+| busybox | host | minimal Linux userland with basic networking tools |
+| FRRouting | router | routing suite, daemons enabled in `daemons` file |
+| `zebra` | router | manages interfaces and the kernel routing table |
+| `bgpd`, `ospfd`, `isisd` | router | routing protocol daemons used in later parts |
+
 ### Part 2 — VXLAN
 
 A VXLAN (RFC 7348) overlay network with VNI 10 that extends a Layer 2 segment across two routers.
@@ -30,9 +48,31 @@ A VXLAN (RFC 7348) overlay network with VNI 10 that extends a Layer 2 segment ac
 **Dynamic multicast mode** — the static `remote` parameter is replaced with `group 239.1.1.1`. Routers discover peers automatically via IGMP, enabling dynamic BUM (Broadcast, Unknown unicast, Multicast) traffic flooding.
 
 ```
-host_1 ── router_1 ──── router_2 ── host_2
-              └── VXLAN VNI 10 ──┘
++---------------------+                     +---------------------+
+|     _dmiasnik-1     |                     |     _dmiasnik-2     |
+| eth0 10.1.1.1/24    +---- 10.1.1.0/24 ----+ eth0 10.1.1.2/24    |
+| vxlan10  VNI 10     +=== VXLAN VNI 10 ====+ vxlan10  VNI 10     |
+| _s: remote 10.1.1.2 |                     | _s: remote 10.1.1.1 |
+| _g: group 239.1.1.1 |                     | _g: group 239.1.1.1 |
+| br0: eth1 + vxlan10 |                     | br0: eth1 + vxlan10 |
+| eth1  no IP         |                     | eth1  no IP         |
++----------+----------+                     +----------+----------+
+           |                                           |
++----------+----------+                     +----------+----------+
+|  _dmiasnik-1_host   |                     |  _dmiasnik-2_host   |
+| eth0 30.1.1.1/24    |                     | eth0 30.1.1.2/24    |
++---------------------+                     +---------------------+
 ```
+
+| Element | Where | Purpose |
+|---|---|---|
+| `eth0` with `10.1.1.0/24` | routers | underlay link, carries encapsulated VXLAN packets |
+| `vxlan10` | routers | tunnel endpoint, wraps L2 frames into UDP port 4789 with VNI 10 |
+| `remote` | routers, `_s` files | static mode: the peer address is hardcoded |
+| `group 239.1.1.1` | routers, `_g` files | multicast mode: peers join the group and receive BUM traffic |
+| `br0` | routers | bridge joining the host port with the tunnel |
+| `eth1` without IP | routers | host-facing port, acts as a switch port |
+| `eth0` with `30.1.1.0/24` | hosts | both hosts share one L2 segment through the tunnel |
 
 ### Part 3 — BGP EVPN
 
@@ -44,12 +84,50 @@ A small data center fabric using BGP EVPN (RFC 7432) with VXLAN as the data plan
 - 3 hosts — connected behind VTEPs
 
 ```
-              Route Reflector
-             /      |       \
-        VTEP_2   VTEP_3   VTEP_4
-          |                  |
-       host_1             host_3
+                          +---------------------+
+                          |     _sshevche-1     |
+                          | Route Reflector     |
+                          | lo   1.1.1.1/32     |
+                          | eth0 10.1.1.1/30    |
+                          | eth1 10.1.1.5/30    |
+                          | eth2 10.1.1.9/30    |
+                          | OSPF area 0         |
+                          | BGP AS 65000, RR    |
+                          | no VXLAN, no br0    |
+                          +----------+----------+
+           +-------------------------+-------------------------+
+           | RR eth0                 | RR eth1                 | RR eth2
+           | 10.1.1.0/30             | 10.1.1.4/30             | 10.1.1.8/30
++----------+----------+   +----------+----------+   +----------+----------+
+|     _sshevche-2     |   |     _sshevche-3     |   |     _sshevche-4     |
+| leaf / VTEP         |   | leaf / VTEP         |   | leaf / VTEP         |
+| lo   1.1.1.2/32     |   | lo   1.1.1.3/32     |   | lo   1.1.1.4/32     |
+| eth0 10.1.1.2/30    |   | eth0 10.1.1.6/30    |   | eth0 10.1.1.10/30   |
+| OSPF area 0         |   | OSPF area 0         |   | OSPF area 0         |
+| BGP AS 65000 -> RR  |   | BGP AS 65000 -> RR  |   | BGP AS 65000 -> RR  |
+| vxlan10  VNI 10     |   | vxlan10  VNI 10     |   | vxlan10  VNI 10     |
+| br0: eth1 + vxlan10 |   | br0: eth1 + vxlan10 |   | br0: eth1 + vxlan10 |
+| eth1  no IP         |   | eth1  no IP         |   | eth1  no IP         |
++----------+----------+   +----------+----------+   +----------+----------+
+           |                         |                         |
++----------+----------+   +----------+----------+   +----------+----------+
+|  _sshevche-1_host   |   |  _sshevche-2_host   |   |  _sshevche-3_host   |
+| eth0 20.1.1.1/24    |   | eth0 20.1.1.2/24    |   | eth0 20.1.1.3/24    |
+| no FRR, no VXLAN    |   | no FRR, no VXLAN    |   | no FRR, no VXLAN    |
++---------------------+   +---------------------+   +---------------------+
 ```
+
+| Element | Where | Purpose |
+|---|---|---|
+| `lo` | all routers | stable router address, BGP sessions and VXLAN tunnels run between loopbacks |
+| `eth0` with `/30` | all routers | leaf to RR link, a separate small network per link |
+| OSPF | all routers | makes every loopback reachable from every router |
+| BGP | all routers | leaves exchange VNI membership and MAC locations through the RR |
+| Route Reflector | `_sshevche-1` only | reflects BGP updates from one leaf to the others |
+| `vxlan10` | leaves only | encapsulates and decapsulates host frames in UDP |
+| `br0` | leaves only | bridge joining the host port with the tunnel |
+| `eth1` without IP | leaves only | host-facing port, acts as a switch port |
+| `eth0` with `/24` | hosts only | all hosts share one network `20.1.1.0/24` |
 
 **Underlay** — OSPF ensures loopback-to-loopback reachability between all routers.
 
