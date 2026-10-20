@@ -956,18 +956,175 @@ exit
 ### 4. Part 3
 
 ```bash
-# Ubuntu, папка badass, запущены только 4 роутера
+# Ubuntu, запущены только 4 роутера
 docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}'
 
-# Ubuntu, папка badass
-docker cp P3/_sshevche-1 ID_sshevche-1:/tmp/setup.sh
-docker exec -it ID_sshevche-1 sh /tmp/setup.sh
-docker cp P3/_sshevche-2 ID_sshevche-2:/tmp/setup.sh
-docker exec -it ID_sshevche-2 sh /tmp/setup.sh
-docker cp P3/_sshevche-3 ID_sshevche-3:/tmp/setup.sh
-docker exec -it ID_sshevche-3 sh /tmp/setup.sh
-docker cp P3/_sshevche-4 ID_sshevche-4:/tmp/setup.sh
-docker exec -it ID_sshevche-4 sh /tmp/setup.sh
+# Ubuntu
+docker exec -it ID_sshevche-1 sh
+# внутри sshevche-1
+ip addr add 10.1.1.1/30 dev eth0
+ip addr add 10.1.1.5/30 dev eth1
+ip addr add 10.1.1.9/30 dev eth2
+ip link set eth0 up
+ip link set eth1 up
+ip link set eth2 up
+ip addr add 1.1.1.1/32 dev lo
+ip link set lo up
+vtysh << 'EOF'
+configure terminal
+!
+hostname _sshevche-1
+!
+router ospf
+ network 10.1.1.0/30 area 0
+ network 10.1.1.4/30 area 0
+ network 10.1.1.8/30 area 0
+ network 1.1.1.1/32 area 0
+!
+router bgp 65000
+ bgp router-id 1.1.1.1
+ no bgp default ipv4-unicast
+ !
+ neighbor 1.1.1.2 remote-as 65000
+ neighbor 1.1.1.2 update-source lo
+ neighbor 1.1.1.3 remote-as 65000
+ neighbor 1.1.1.3 update-source lo
+ neighbor 1.1.1.4 remote-as 65000
+ neighbor 1.1.1.4 update-source lo
+ !
+ address-family l2vpn evpn
+  neighbor 1.1.1.2 activate
+  neighbor 1.1.1.2 route-reflector-client
+  neighbor 1.1.1.3 activate
+  neighbor 1.1.1.3 route-reflector-client
+  neighbor 1.1.1.4 activate
+  neighbor 1.1.1.4 route-reflector-client
+ exit-address-family
+!
+end
+write memory
+EOF
+exit
+
+# Ubuntu
+docker exec -it ID_sshevche-2 sh
+# внутри sshevche-2
+ip addr add 10.1.1.2/30 dev eth0
+ip link set eth0 up
+ip link set eth1 up
+ip addr add 1.1.1.2/32 dev lo
+ip link set lo up
+ip link add vxlan10 type vxlan id 10 dstport 4789 local 1.1.1.2 nolearning
+ip link set vxlan10 up
+brctl addbr br0
+brctl addif br0 vxlan10
+brctl addif br0 eth1
+ip link set br0 up
+vtysh << 'EOF'
+configure terminal
+!
+hostname _sshevche-2
+!
+router ospf
+ network 10.1.1.0/30 area 0
+ network 1.1.1.2/32 area 0
+!
+router bgp 65000
+ bgp router-id 1.1.1.2
+ no bgp default ipv4-unicast
+ !
+ neighbor 1.1.1.1 remote-as 65000
+ neighbor 1.1.1.1 update-source lo
+ !
+ address-family l2vpn evpn
+  neighbor 1.1.1.1 activate
+  advertise-all-vni
+ exit-address-family
+!
+end
+write memory
+EOF
+exit
+
+# Ubuntu
+docker exec -it ID_sshevche-3 sh
+# внутри sshevche-3
+ip addr add 10.1.1.6/30 dev eth0
+ip link set eth0 up
+ip link set eth1 up
+ip addr add 1.1.1.3/32 dev lo
+ip link set lo up
+ip link add vxlan10 type vxlan id 10 dstport 4789 local 1.1.1.3 nolearning
+ip link set vxlan10 up
+brctl addbr br0
+brctl addif br0 vxlan10
+brctl addif br0 eth1
+ip link set br0 up
+vtysh << 'EOF'
+configure terminal
+!
+hostname _sshevche-3
+!
+router ospf
+ network 10.1.1.4/30 area 0
+ network 1.1.1.3/32 area 0
+!
+router bgp 65000
+ bgp router-id 1.1.1.3
+ no bgp default ipv4-unicast
+ !
+ neighbor 1.1.1.1 remote-as 65000
+ neighbor 1.1.1.1 update-source lo
+ !
+ address-family l2vpn evpn
+  neighbor 1.1.1.1 activate
+  advertise-all-vni
+ exit-address-family
+!
+end
+write memory
+EOF
+exit
+
+# Ubuntu
+docker exec -it ID_sshevche-4 sh
+# внутри sshevche-4
+ip addr add 10.1.1.10/30 dev eth0
+ip link set eth0 up
+ip link set eth1 up
+ip addr add 1.1.1.4/32 dev lo
+ip link set lo up
+ip link add vxlan10 type vxlan id 10 dstport 4789 local 1.1.1.4 nolearning
+ip link set vxlan10 up
+brctl addbr br0
+brctl addif br0 vxlan10
+brctl addif br0 eth1
+ip link set br0 up
+vtysh << 'EOF'
+configure terminal
+!
+hostname _sshevche-4
+!
+router ospf
+ network 10.1.1.8/30 area 0
+ network 1.1.1.4/32 area 0
+!
+router bgp 65000
+ bgp router-id 1.1.1.4
+ no bgp default ipv4-unicast
+ !
+ neighbor 1.1.1.1 remote-as 65000
+ neighbor 1.1.1.1 update-source lo
+ !
+ address-family l2vpn evpn
+  neighbor 1.1.1.1 activate
+  advertise-all-vni
+ exit-address-family
+!
+end
+write memory
+EOF
+exit
 
 # Ubuntu, через 15–30 секунд
 docker exec -it ID_sshevche-1 sh
