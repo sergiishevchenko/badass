@@ -74,6 +74,34 @@ A VXLAN (RFC 7348) overlay network with VNI 10 that extends a Layer 2 segment ac
 | `eth1` without IP | routers | host-facing port, acts as a switch port |
 | `eth0` with `30.1.1.0/24` | hosts | both hosts share one L2 segment through the tunnel |
 
+**Inside a router.** The bridge `br0` has two ports: `eth1` (towards the host) and `vxlan10` (towards the tunnel). `eth0` is not a bridge port: it is a regular IP interface underneath the tunnel, and `vxlan10` sends its UDP packets through it (`dev eth0`).
+
+```
+             bridge br0
+         +---------------+
+host ----+ eth1  vxlan10 +
+         +-----------+---+
+                     | encapsulation into UDP 4789
+                   eth0 (10.1.1.1) ------- peer router
+```
+
+| Port | Bridge member | Role |
+|---|---|---|
+| `eth1` | yes | receives and delivers the host's Ethernet frames |
+| `vxlan10` | yes | encapsulates frames into UDP and decapsulates incoming ones |
+| `eth0` | no | underlay IP interface, physically carries the UDP packets |
+
+Path of a frame from the host:
+
+1. The frame arrives on `eth1`.
+2. `br0` forwards it to its other port, `vxlan10`.
+3. `vxlan10` wraps it into a UDP packet addressed to the peer (`10.1.1.2`).
+4. The packet leaves through `eth0` as ordinary IP traffic.
+
+The peer router does the reverse: `eth0` → `vxlan10` decapsulates → `br0` → `eth1` → host.
+
+`eth0` must stay out of the bridge: an interface enslaved to a bridge stops serving its own IP address, so `vxlan10` could no longer send or receive UDP and the tunnel would break. `eth0` and `eth1` are created by GNS3 from the node's adapter count; the script only creates `vxlan10` (`ip link add`) and `br0` (`brctl addbr`).
+
 ### Part 3 — BGP EVPN
 
 A small data center fabric using BGP EVPN (RFC 7432) with VXLAN as the data plane.
