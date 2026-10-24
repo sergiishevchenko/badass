@@ -1,3 +1,12 @@
+# Host image: Alpine Linux with busybox and networking tools.
+#
+#   busybox-extras  extra busybox applets (telnet, ftp, ...)
+#   iproute2        full `ip` command (addresses, links, VXLAN details)
+#   iputils         full `ping`
+#   tcpdump         packet capture used for checks
+#
+# The container only stays alive (tail -f /dev/null); GNS3 attaches eth0..ethN.
+
 FROM alpine:latest
 
 RUN apk update && apk add --no-cache \

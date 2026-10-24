@@ -1,4 +1,10 @@
 #!/bin/sh
+#
+# _dmiasnik-1_host - host (Alpine + busybox), Part 1.
+#
+#   eth0  10.1.1.1/24  link to the router _dmiasnik-2
+#
+# Assigns the address and brings eth0 up, so the host can ping 10.1.1.2.
 
 ip addr add 10.1.1.1/24 dev eth0
 ip link set eth0 up

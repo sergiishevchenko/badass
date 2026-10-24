@@ -1,4 +1,25 @@
 #!/bin/sh
+#
+# _sshevche-1 - Route Reflector, Part 3. No VXLAN, no bridge, no hosts.
+#
+#   eth0  10.1.1.1/30  link to leaf _sshevche-2
+#   eth1  10.1.1.5/30  link to leaf _sshevche-3
+#   eth2  10.1.1.9/30  link to leaf _sshevche-4
+#   lo    1.1.1.1/32   router identity, source of the BGP sessions
+#
+# OSPF area 0 (underlay)
+#   advertises the three links and the loopback, so every router can reach
+#   every loopback 1.1.1.1-4.
+#
+# BGP AS 65000 (overlay control plane)
+#   iBGP sessions to the leaf loopbacks 1.1.1.2-4, sourced from lo.
+#   no bgp default ipv4-unicast  only EVPN routes are exchanged
+#   address-family l2vpn evpn    activates EVPN with each leaf
+#   route-reflector-client       reflects EVPN routes (type 2 MAC/IP,
+#                                type 3 VNI membership) from one leaf
+#                                to the others, so leaves need no full mesh
+#
+# FRR is configured through vtysh and saved with write memory.
 
 ip addr add 10.1.1.1/30 dev eth0
 ip addr add 10.1.1.5/30 dev eth1

@@ -1,4 +1,11 @@
 #!/bin/sh
+#
+# _dmiasnik-2 - router (FRRouting: zebra, bgpd, ospfd, isisd), Part 1.
+#
+#   eth0  10.1.1.2/24  link to the host _dmiasnik-1_host
+#
+# Only basic connectivity is checked here: the routing daemons are started
+# by the image but not configured yet.
 
 ip addr add 10.1.1.2/24 dev eth0
 ip link set eth0 up

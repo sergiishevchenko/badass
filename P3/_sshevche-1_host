@@ -1,4 +1,11 @@
 #!/bin/sh
+#
+# _sshevche-1_host - host behind the leaf _sshevche-2, Part 3.
+#
+#   eth0  20.1.1.1/24  connected to eth1 of _sshevche-2
+#
+# All three hosts share 20.1.1.0/24 over VXLAN VNI 10. The host has no FRR
+# and no VXLAN: the leaves carry its frames to the other hosts.
 
 ip addr add 20.1.1.1/24 dev eth0
 ip link set eth0 up

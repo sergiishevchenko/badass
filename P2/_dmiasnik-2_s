@@ -1,4 +1,15 @@
 #!/bin/sh
+#
+# _dmiasnik-2 - router, Part 2, static VXLAN.
+#
+#   eth0     10.1.1.2/24  underlay link to _dmiasnik-1, carries VXLAN UDP packets
+#   vxlan10  VNI 10       tunnel to the fixed peer 10.1.1.1, UDP port 4789, via eth0
+#   br0                   bridge with two ports: eth1 and vxlan10
+#   eth1     no IP        port to _dmiasnik-2_host, acts as a switch port
+#
+# A frame from the host enters eth1, br0 forwards it to vxlan10, which wraps it
+# into UDP and sends it through eth0 to the peer. eth0 stays out of the bridge,
+# otherwise it would lose its IP role and the tunnel would break.
 
 ip addr add 10.1.1.2/24 dev eth0
 ip link set eth0 up

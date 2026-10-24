@@ -1,4 +1,24 @@
 #!/bin/sh
+#
+# _sshevche-2 - leaf / VTEP, Part 3, serves _sshevche-1_host.
+#
+#   eth0     10.1.1.2/30  link to the Route Reflector _sshevche-1
+#   lo       1.1.1.2/32   router identity, BGP source and VXLAN tunnel endpoint
+#   vxlan10  VNI 10       local 1.1.1.2, no static peer, nolearning:
+#                         remote MAC addresses come from BGP EVPN, not flooding
+#   br0                   bridge with two ports: eth1 and vxlan10
+#   eth1     no IP        port to _sshevche-1_host, acts as a switch port
+#
+# OSPF area 0 (underlay)
+#   advertises the link and the loopback, so the other loopbacks are reachable.
+#
+# BGP AS 65000 (overlay control plane)
+#   iBGP session to the Route Reflector 1.1.1.1, sourced from lo.
+#   no bgp default ipv4-unicast  only EVPN routes are exchanged
+#   advertise-all-vni            announces VNI 10 (type 3) and the MAC
+#                                addresses of the local host (type 2)
+#
+# FRR is configured through vtysh and saved with write memory.
 
 ip addr add 10.1.1.2/30 dev eth0
 ip link set eth0 up

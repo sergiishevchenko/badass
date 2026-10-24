@@ -1,3 +1,11 @@
+# Router image: FRRouting with busybox and networking tools.
+#
+#   busybox-extras, iputils, tcpdump  same tools as the host image
+#   bridge-utils                      `brctl`, builds the bridge br0 in P2 and P3
+#   daemons                           enables zebra, bgpd, ospfd and isisd
+#
+# docker-start launches every FRR daemon enabled in the daemons file.
+
 FROM frrouting/frr:latest
 
 RUN apk update && apk add --no-cache \
