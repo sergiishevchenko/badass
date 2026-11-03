@@ -112,37 +112,41 @@ A small data center fabric using BGP EVPN (RFC 7432) with VXLAN as the data plan
 - 3 hosts — connected behind VTEPs
 
 ```
-                          +---------------------+
-                          |     _sshevche-1     |
-                          | Route Reflector     |
-                          | lo   1.1.1.1/32     |
-                          | eth0 10.1.1.1/30    |
-                          | eth1 10.1.1.5/30    |
-                          | eth2 10.1.1.9/30    |
-                          | OSPF area 0         |
-                          | BGP AS 65000, RR    |
-                          | no VXLAN, no br0    |
-                          +----------+----------+
-           +-------------------------+-------------------------+
-           | RR eth0                 | RR eth1                 | RR eth2
-           | 10.1.1.0/30             | 10.1.1.4/30             | 10.1.1.8/30
-+----------+----------+   +----------+----------+   +----------+----------+
-|     _sshevche-2     |   |     _sshevche-3     |   |     _sshevche-4     |
-| leaf / VTEP         |   | leaf / VTEP         |   | leaf / VTEP         |
-| lo   1.1.1.2/32     |   | lo   1.1.1.3/32     |   | lo   1.1.1.4/32     |
-| eth0 10.1.1.2/30    |   | eth0 10.1.1.6/30    |   | eth0 10.1.1.10/30   |
-| OSPF area 0         |   | OSPF area 0         |   | OSPF area 0         |
-| BGP AS 65000 -> RR  |   | BGP AS 65000 -> RR  |   | BGP AS 65000 -> RR  |
-| vxlan10  VNI 10     |   | vxlan10  VNI 10     |   | vxlan10  VNI 10     |
-| br0: eth1 + vxlan10 |   | br0: eth1 + vxlan10 |   | br0: eth1 + vxlan10 |
-| eth1  no IP         |   | eth1  no IP         |   | eth1  no IP         |
-+----------+----------+   +----------+----------+   +----------+----------+
-           |                         |                         |
-+----------+----------+   +----------+----------+   +----------+----------+
-|  _sshevche-1_host   |   |  _sshevche-2_host   |   |  _sshevche-3_host   |
-| eth0 20.1.1.1/24    |   | eth0 20.1.1.2/24    |   | eth0 20.1.1.3/24    |
-| no FRR, no VXLAN    |   | no FRR, no VXLAN    |   | no FRR, no VXLAN    |
-+---------------------+   +---------------------+   +---------------------+
+                              +--------------------------+
+                              | _sshevche-1              |
+                              | Route Reflector          |
+                              | lo      1.1.1.1/32       |
+                              | eth0    10.1.1.1/30      |
+                              | eth1    10.1.1.5/30      |
+                              | eth2    10.1.1.9/30      |
+                              | OSPF area 0              |
+                              | BGP AS 65000, RR         |
+                              | no VXLAN, no br0         |
+                              +--------------------------+
+
++--------------------------+  +--------------------------+  +--------------------------+
+| RR eth0 10.1.1.1/30      |  | RR eth1 10.1.1.5/30      |  | RR eth2 10.1.1.9/30      |
+| net 10.1.1.0/30          |  | net 10.1.1.4/30          |  | net 10.1.1.8/30          |
+| VTEP eth0 10.1.1.2/30    |  | VTEP eth0 10.1.1.6/30    |  | VTEP eth0 10.1.1.10/30   |
++--------------------------+  +--------------------------+  +--------------------------+
+| _sshevche-2              |  | _sshevche-3              |  | _sshevche-4              |
+| leaf / VTEP              |  | leaf / VTEP              |  | leaf / VTEP              |
+| lo      1.1.1.2/32       |  | lo      1.1.1.3/32       |  | lo      1.1.1.4/32       |
+| eth0    10.1.1.2/30      |  | eth0    10.1.1.6/30      |  | eth0    10.1.1.10/30     |
+| vxlan10 local 1.1.1.2    |  | vxlan10 local 1.1.1.3    |  | vxlan10 local 1.1.1.4    |
+| VNI 10, UDP 4789         |  | VNI 10, UDP 4789         |  | VNI 10, UDP 4789         |
+| br0     eth1 + vxlan10   |  | br0     eth1 + vxlan10   |  | br0     eth1 + vxlan10   |
+| eth1    no IP            |  | eth1    no IP            |  | eth1    no IP            |
+| OSPF area 0              |  | OSPF area 0              |  | OSPF area 0              |
+| BGP AS 65000 -> RR       |  | BGP AS 65000 -> RR       |  | BGP AS 65000 -> RR       |
++--------------------------+  +--------------------------+  +--------------------------+
+| eth1 no IP               |  | eth1 no IP               |  | eth1 no IP               |
+| <-> eth0 20.1.1.1/24     |  | <-> eth0 20.1.1.2/24     |  | <-> eth0 20.1.1.3/24     |
++--------------------------+  +--------------------------+  +--------------------------+
+| _sshevche-1_host         |  | _sshevche-2_host         |  | _sshevche-3_host         |
+| eth0    20.1.1.1/24      |  | eth0    20.1.1.2/24      |  | eth0    20.1.1.3/24      |
+| no FRR, no VXLAN         |  | no FRR, no VXLAN         |  | no FRR, no VXLAN         |
++--------------------------+  +--------------------------+  +--------------------------+
 ```
 
 | Element | Where | Purpose |
